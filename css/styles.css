@@ -31,6 +31,10 @@
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; background: var(--bg); color: var(--text); }
+/* iOS (app instalada): si la página es más corta que la pantalla, la barra fija
+   inferior se desplaza hacia arriba. Forzamos que el documento ocupe siempre toda la pantalla. */
+html { min-height: 100%; }
+body { min-height: 100vh; min-height: 100dvh; }
 body {
   font: 15px/1.4 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
   padding: calc(var(--top) + 52px) 0 calc(var(--bottom) + 76px);

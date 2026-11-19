@@ -224,6 +224,12 @@ export function deleteMovement(id) {
   updateMovement(id, { deleted: true });
 }
 
+// Sin datos introducidos: ni movimientos ni ingresos
+export function isEmpty() {
+  if (data.movements.some((m) => !m.deleted)) return false;
+  return !Object.values(data.months).some((m) => (m.incomes || []).some((i) => Number(i.amount)));
+}
+
 // ---------- Cálculos ----------
 export function allMonthKeys() {
   const keys = new Set(Object.keys(data.months));

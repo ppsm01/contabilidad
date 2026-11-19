@@ -151,6 +151,14 @@ async function findFile() {
   return j.files || [];
 }
 
+// Archivos de contabilidad que otra persona ha compartido conmigo (no míos)
+async function findShared() {
+  const q = encodeURIComponent(`name='${FILE_NAME}' and trashed=false and sharedWithMe=true`);
+  const r = await api(`https://www.googleapis.com/drive/v3/files?q=${q}&orderBy=modifiedTime desc&fields=files(id,owners(me,emailAddress))&pageSize=10`);
+  const j = await r.json();
+  return (j.files || []).filter((f) => !(f.owners || []).some((o) => o.me));
+}
+
 async function download(id) {
   const r = await api(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`);
   const text = await r.text();
@@ -217,9 +225,21 @@ export async function sync() {
     if (!navigator.onLine) { setStatus('offline', 'Sin conexión: los cambios se guardan en el móvil'); return; }
     if (!token()) { setStatus('auth', 'Toca para reconectar con Google'); return; }
     setStatus('busy', 'Sincronizando…');
+    let switched = false;
     try {
       if (!email()) await fetchEmail();
       let id = fileId();
+      // Si en este móvil aún no hay datos y alguien nos ha compartido su contabilidad,
+      // nos pasamos a ese archivo (aunque ya tuviéramos uno propio vacío).
+      const empty = store.isEmpty();
+      if (empty) {
+        const shared = await findShared();
+        if (shared.length && shared[0].id !== id) {
+          id = shared[0].id;
+          ls.set(LS.fileId, id);
+          switched = true;
+        }
+      }
       if (!id) {
         const files = await findFile();
         if (files.length) { id = files[0].id; ls.set(LS.fileId, id); }
@@ -229,14 +249,15 @@ export async function sync() {
         try { remote = await download(id); }
         catch (e) { if (/not found|404/i.test(e.message)) { id = null; ls.set(LS.fileId, null); } else throw e; }
       }
-      // Un dispositivo recién instalado adopta los datos de la nube tal cual
-      const merged = remote && store.get().pristine ? remote : store.merge(remote, store.get());
+      // Un móvil recién instalado, o uno vacío que acaba de pasarse a un archivo
+      // compartido, adopta los datos de la nube tal cual (sin mezclar partidas por defecto)
+      const merged = remote && (store.get().pristine || switched) ? remote : store.merge(remote, store.get());
       store.replace(merged);
       const newId = await upload(id, merged);
       ls.set(LS.fileId, newId);
       ls.set(LS.dirty, null);
       ls.set(LS.lastSync, new Date().toISOString());
-      setStatus('ok', 'Sincronizado');
+      setStatus('ok', switched ? 'Conectado a la contabilidad compartida contigo' : 'Sincronizado');
     } catch (e) {
       if (e.code === 'auth') setStatus('auth', 'Toca para reconectar con Google');
       else if (e.code === 'scope') setStatus('auth', NO_DRIVE_MSG);

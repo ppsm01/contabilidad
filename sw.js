@@ -1,5 +1,5 @@
 // Service worker: permite abrir la app sin conexión. Sube VERSION al publicar cambios.
-const VERSION = 'cp-v3';
+const VERSION = 'cp-v4';
 const ASSETS = [
   './',
   './index.html',

@@ -18,6 +18,8 @@ const todayISO = () => {
 };
 const userName = () => localStorage.getItem('cp.user') || (D.email() ? D.email().split('@')[0] : '');
 
+let toastTimer; // declarado arriba: toast() puede llamarse durante el arranque
+
 const state = {
   view: localStorage.getItem('cp.view') || 'mes',
   month: S.monthKey(),
@@ -86,6 +88,8 @@ function renderStatus(st) {
   if (state.view === 'ajustes') {
     const m = $('#drive-msg');
     if (m) m.textContent = st.msg;
+    const ls = $('#last-sync');
+    if (ls && D.lastSync()) ls.textContent = new Date(D.lastSync()).toLocaleString('es-ES');
     // muestra u oculta el botón «Reconectar» según el estado
     const needsBtn = st.state === 'auth' && D.isConnected();
     if (D.isConnected() && needsBtn !== !!$('#view button[data-action=login]') && !$('#view input:focus')) render();
@@ -356,7 +360,7 @@ function viewAjustes() {
   html += `<div class="card"><h3>Google Drive</h3>
     <p class="small" id="drive-msg">${esc(st.msg)}</p>`;
   if (D.isConnected()) {
-    html += `<p class="small muted">Cuenta: <b>${esc(D.email() || '—')}</b><br>Última sincronización: ${D.lastSync() ? new Date(D.lastSync()).toLocaleString('es-ES') : '—'}</p>
+    html += `<p class="small muted">Cuenta: <b>${esc(D.email() || '—')}</b><br>Última sincronización: <span id="last-sync">${D.lastSync() ? new Date(D.lastSync()).toLocaleString('es-ES') : '—'}</span></p>
       <div class="btns"><button class="btn primary" data-action="sync">Sincronizar ahora</button>
       ${st.state === 'auth' ? '<button class="btn" data-action="login">Reconectar</button>' : ''}
       <button class="btn ghost" data-action="logout">Desconectar</button></div>
@@ -687,7 +691,6 @@ function importFile(file) {
   r.readAsText(file);
 }
 
-let toastTimer;
 function toast(msg) {
   const t = $('#toast');
   t.textContent = msg;

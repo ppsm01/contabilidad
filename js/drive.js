@@ -17,6 +17,8 @@ const LS = {
 };
 const SCOPE = 'https://www.googleapis.com/auth/drive openid email';
 const FILE_NAME = 'contabilidad-personal.json';
+export const NO_DRIVE_MSG =
+  'Google no ha concedido acceso a Drive. Pulsa «Reconectar» y, en la pantalla de Google, marca la casilla «Ver, editar, crear y eliminar todos tus archivos de Google Drive».';
 
 const ls = {
   get: (k) => { try { return localStorage.getItem(k); } catch { return null; } },
@@ -63,7 +65,8 @@ export function login({ silent = false } = {}) {
     state,
   });
   if (silent) p.set('prompt', 'none');
-  else p.set('prompt', 'select_account');
+  // 'consent' fuerza a Google a mostrar de nuevo la casilla de permiso de Drive
+  else p.set('prompt', 'consent select_account');
   const hint = email();
   if (hint) p.set('login_hint', hint);
   location.assign('https://accounts.google.com/o/oauth2/v2/auth?' + p.toString());
@@ -83,6 +86,12 @@ export function handleRedirect() {
   ls.set(LS.token, p.get('access_token'));
   ls.set(LS.exp, String(Date.now() + Number(p.get('expires_in') || 3600) * 1000));
   ls.set(LS.connected, '1');
+  // Google permite desmarcar permisos: comprobamos que se concedió el de Drive
+  const granted = p.get('scope') || '';
+  if (!granted.includes('auth/drive')) {
+    ls.set(LS.token, null);
+    return { error: 'nodrive' };
+  }
   return { ok: true };
 }
 
@@ -107,6 +116,17 @@ async function api(url, opts = {}) {
     const e = new Error('Sesión de Google caducada');
     e.code = 'auth';
     throw e;
+  }
+  if (res.status === 403) {
+    let j = null;
+    try { j = await res.clone().json(); } catch {}
+    const m = j?.error?.message || '';
+    if (/insufficient.*scope|ACCESS_TOKEN_SCOPE_INSUFFICIENT/i.test(m + JSON.stringify(j?.error?.details || ''))) {
+      ls.set(LS.token, null);
+      const e = new Error('Falta el permiso de Google Drive');
+      e.code = 'scope';
+      throw e;
+    }
   }
   if (!res.ok) {
     let msg = res.status + ' ' + res.statusText;
@@ -219,6 +239,7 @@ export async function sync() {
       setStatus('ok', 'Sincronizado');
     } catch (e) {
       if (e.code === 'auth') setStatus('auth', 'Toca para reconectar con Google');
+      else if (e.code === 'scope') setStatus('auth', NO_DRIVE_MSG);
       else setStatus('error', 'Error de sincronización: ' + e.message);
       console.error(e);
     }
@@ -241,4 +262,9 @@ export function autoReconnect() {
   sessionStorage.setItem('cp.oauth.silentAt', String(Date.now()));
   login({ silent: true });
   return true;
+}
+
+// El usuario desmarcó el permiso de Drive en la pantalla de Google
+export function flagNoDrive() {
+  setStatus('auth', NO_DRIVE_MSG);
 }

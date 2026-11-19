@@ -30,6 +30,7 @@ S.load();
 const redirect = D.handleRedirect();
 let toastMsg = null;
 if (redirect?.ok) toastMsg = 'Conectado con Google Drive';
+else if (redirect?.error === 'nodrive') toastMsg = 'Falta marcar el permiso de Google Drive';
 else if (redirect?.error && redirect.error !== 'silent') toastMsg = 'Google: ' + redirect.error;
 
 if (!redirect && D.autoReconnect()) {
@@ -52,7 +53,8 @@ function init() {
   });
   window.addEventListener('online', () => D.sync());
   render();
-  D.sync();
+  if (redirect?.error === 'nodrive') D.flagNoDrive();
+  else D.sync();
   if (toastMsg) toast(toastMsg);
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
 }
@@ -84,6 +86,9 @@ function renderStatus(st) {
   if (state.view === 'ajustes') {
     const m = $('#drive-msg');
     if (m) m.textContent = st.msg;
+    // muestra u oculta el botón «Reconectar» según el estado
+    const needsBtn = st.state === 'auth' && D.isConnected();
+    if (D.isConnected() && needsBtn !== !!$('#view button[data-action=login]') && !$('#view input:focus')) render();
   }
 }
 

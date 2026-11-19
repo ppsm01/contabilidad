@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+  <title>Contabilidad</title>
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Contabilidad">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1>Contabilidad</h1>
+    <button id="sync" class="sync off" aria-label="Estado de sincronización"><i></i><span id="sync-label">Local</span></button>
+  </header>
+
+  <main id="view"></main>
+
+  <button id="fab" aria-label="Apuntar movimiento">+</button>
+
+  <nav class="tabbar">
+    <button class="tab" data-view="mes"><span>✏️</span>Mes</button>
+    <button class="tab" data-view="dashboard"><span>📊</span>Dashboard</button>
+    <button class="tab" data-view="historico"><span>🗂️</span>Histórico</button>
+    <button class="tab" data-view="ajustes"><span>⚙️</span>Ajustes</button>
+  </nav>
+
+  <div id="sheet" hidden><div class="sheet-panel"><div class="grabber"></div><div id="sheet-body"></div></div></div>
+  <div id="toast" role="status"></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
